@@ -28,10 +28,8 @@ func CountInversions(numbers []int) (count int, merged []int) {
         return 0, numbers
     }
     median := (len(numbers) + 1) / 2
-    var left =  make([]int, 0, median)
-    var right = make([]int, 0, median)
-    left = numbers[:median]
-    right = numbers[median:]
+    left := numbers[:median]
+    right := numbers[median:]
     l_count, l_merged := CountInversions(left)
     r_count, r_merged := CountInversions(right)
     count = r_count + l_count

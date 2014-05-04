@@ -1,7 +1,6 @@
 package main
 
 import (
-    "fmt"
     "strings"
     "testing"
 )
@@ -13,13 +12,9 @@ func TestFiveElements(self *testing.T) {
     if inverts != 1 {
         self.FailNow()
     }
-    var i interface{} = sorted
-    fmt.Printf("%q", i)
-    /*
     if !is_sorted(sorted){
         self.FailNow()
     }
-    */
 }
 
 func TestIcanRead(self *testing.T) {
