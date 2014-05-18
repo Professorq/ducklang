@@ -16,13 +16,12 @@ func Sort(a []int, strategy PivotChoice) (count int) {
     // Swap pivot to the first position in a[left]
     strategy.Pivot(a)
     index := Partition(a)
+    count += len(a) -1
 
     left := a[:index - 1]
-    count += len(left) - 1
     count += Sort(left, strategy)
 
     right := a[index:]
-    count += len(right) - 1
     count += Sort(right, strategy)
     return count
 }
@@ -80,17 +79,18 @@ func PivotMedian(a []int) {
     if n < 3 {
         return
     }
-    left, mid, right := a[0], a[n/2], a[n-1]
+    left, mid, right := a[0], a[(n - 1)/2], a[n-1]
     switch {
-        case left >= mid && mid >= right || right >= mid && mid >= left:
-            median = n/2
-        case right >= left && left >= mid || mid >= left && left >= right:
+        case right > left && left > mid || mid > left && left > right:
             return
-        case mid >= right && right >= left || left >= right && right >= mid:
+        case left > mid && mid > right || right > mid && mid > left:
+            median = (n - 1)/2
+        case mid > right && right > left || left > right && right > mid:
             median = n-1
         default:
             log.Print(a)
-            log.Panicf("left: %v, mid %v, right %v", left, mid, right)
+            log.Panicf("left: %v, mid %v, right %v",
+                       left, mid, right)
     }
     Swap(a, 0, median)
 }

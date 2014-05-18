@@ -116,7 +116,7 @@ func TestBasicSort(t *testing.T) {
 }
 
 func TestLeftPivot(t *testing.T) {
-    ints := _LoadInts()
+    ints := _LoadInts("quicksort.txt")
     count := Sort(ints, PivotLeft)
     fmt.Printf("Left: %v\n", count)
     prev := -1
@@ -129,7 +129,7 @@ func TestLeftPivot(t *testing.T) {
 }
 
 func TestMedianPivot(t *testing.T) {
-    ints := _LoadInts()
+    ints := _LoadInts("quicksort.txt")
     count := Sort(ints, PivotMedian)
     fmt.Printf("Median: %v\n", count)
     prev := -1
@@ -142,7 +142,7 @@ func TestMedianPivot(t *testing.T) {
 }
 
 func TestRightPivot(t *testing.T) {
-    ints := _LoadInts()
+    ints := _LoadInts("quicksort.txt")
     count := Sort(ints, PivotRight)
     fmt.Printf("Right: %v\n", count)
     prev := -1
@@ -154,8 +154,46 @@ func TestRightPivot(t *testing.T) {
     }
 }
 
-func _LoadInts() (numbers []int) {
-    file, err := os.Open("quicksort.txt")
+func TestDietersInputs(t *testing.T) {
+    var tests = []struct {
+        filename string
+        left int
+        right int
+        median int
+    }{
+        {
+            filename: "quick10.txt",
+            left: 25,
+            right: 29,
+            median: 21,
+        },
+        {
+            filename: "quick100.txt",
+            left: 615,
+            right: 587,
+            median: 518,
+        },
+        {
+            filename: "quick1000.txt",
+            left: 10297,
+            right: 10184,
+            median: 8921,
+        },
+    }
+    for _, test := range tests {
+        left := Sort(_LoadInts(test.filename), PivotLeft)
+        right := Sort(_LoadInts(test.filename), PivotRight)
+        median := Sort(_LoadInts(test.filename), PivotMedian)
+        if left * median * right != test.left * test.median * test.right {
+            t.Logf("\nL:\tg: %v\t\tt: %v\nR:\tg: %v\t\tt: %v\nM:\tg: %v\t\tt: %v",
+                   test.left, left, test.right, right, test.median, median)
+            t.Fail()
+        }
+    }
+}
+
+func _LoadInts(filename string) (numbers []int) {
+    file, err := os.Open(filename)
     if err != nil {
         log.Fatal(err)
     }
