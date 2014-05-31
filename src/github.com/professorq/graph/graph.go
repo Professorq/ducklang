@@ -15,6 +15,15 @@ import (
     "time"
 )
 
+func init() {
+    switch os.Getenv("MCDBG") {
+    case "":
+        rand.Seed(time.Now().UnixNano())
+    default:
+        // do nothing
+    }
+}
+
 type Node struct {
     vertex int
     edges []int
@@ -85,9 +94,17 @@ func FromFile(f string) Graph {
 // Remove an edge from the grpah, collapsing the two nodes
 // on the edge into a single super-node
 func CollapseEdge(a, b Node, removed map[int]int) (sN Node, err error) {
-    // Remove any self-cycles
+    // The returned node takes the place of A.
     sN.setVertex(a.vertex)
-Loop:
+    // Update any references to b.vertex in the Removed map
+    for i, w := range removed {
+        // if i has been removed, and mapped to v,
+        // update the i reference to point to the a.vertex.
+        if w == b.vertex {
+            removed[i] = a.vertex
+        }
+    }
+    // Remove any self-cycles
     for _, v := range append(a.edges, b.edges...) {
         switch {
         case v == a.vertex:
@@ -97,13 +114,9 @@ Loop:
         case removed[v] == a.vertex:
             continue
         case removed[v] == b.vertex:
+            log.Print("wtf - should be handled in first loop")
             continue
         default:
-            for i, w := range removed {
-                if i == v && (w == a.vertex || w == b.vertex) {
-                    continue Loop
-                }
-            }
             sN.edges = append(sN.edges, v)
         }
     }
@@ -115,19 +128,12 @@ Loop:
 func (g Graph) Cut(c chan int) {
     superNodes := make(Graph)
     goneNodes := make(map[int]int)
-    switch os.Getenv("MCDBG") {
-    case "":
-        rand.Seed(time.Now().UnixNano())
-    default:
-        // do nothing
-    }
-    randN := rand.Intn(len(g) - 1)
-    randFactor := rand.Intn(1 + len(g))
+    // randFactor := rand.Int()
     for i := 0; i < len(g) - 2; i++ {
         // Select a random node in g
         // TODO: Try this using the 'fact' that golang range
         // for a map is random
-        randN = (randN * randFactor) % len(g) + 1
+        randN := rand.Intn(len(g) - 1) + 1
         sN, super := superNodes[randN]
         ref, gone := goneNodes[randN]
         var n Node
@@ -161,7 +167,7 @@ func (g Graph) Cut(c chan int) {
             if length < 1 {
                 log.Print(n, super, gone, superNodes, goneNodes)
             }
-            randomOther := (randN * randFactor) % length
+            randomOther := rand.Intn(length)
             o := n.edges[randomOther] // Provides a key for the graph
             sN, super := superNodes[o]
             ref, gone := goneNodes[o]
@@ -189,13 +195,11 @@ func (g Graph) Cut(c chan int) {
         }
         sNode, err := CollapseEdge(n, other, goneNodes)
         goneNodes[other.vertex] = n.vertex
-        defer delete(superNodes, other.vertex)
-        // log.Print(self, other, g[k].edges)
         if err != nil {
             log.Print(err)
         }
+        delete(superNodes, other.vertex)
         superNodes[n.vertex] = sNode
-        // Break to next cut
     }
     /*
     if len(superNodes) != 2 {
