@@ -67,7 +67,7 @@ func TestAnyCutInRing(t *testing.T) {
     // e := make(chan error)
     graph := FromString(ring)
     c := make(chan int)
-    graph.Cut(c)
+    go graph.Cut(c)
     cut := <-c
     if cut != 2 {
         t.Log("Ring should always be cut in 2. Instead: ", cut)

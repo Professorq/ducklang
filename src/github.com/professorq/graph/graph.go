@@ -12,6 +12,7 @@ import (
     "runtime"
     "strings"
     "strconv"
+    "time"
 )
 
 type Node struct {
@@ -83,20 +84,26 @@ func FromFile(f string) Graph {
 
 // Remove an edge from the grpah, collapsing the two nodes
 // on the edge into a single super-node
-func CollapseEdge(a, b Node, cipher map[int]int) (sN Node, err error) {
+func CollapseEdge(a, b Node, removed map[int]int) (sN Node, err error) {
     // Remove any self-cycles
     sN.setVertex(a.vertex)
+Loop:
     for _, v := range append(a.edges, b.edges...) {
         switch {
         case v == a.vertex:
             continue
         case v == b.vertex:
             continue
-        case cipher[v] == a.vertex:
+        case removed[v] == a.vertex:
             continue
-        case cipher[v] == b.vertex:
+        case removed[v] == b.vertex:
             continue
         default:
+            for i, w := range removed {
+                if i == v && (w == a.vertex || w == b.vertex) {
+                    continue Loop
+                }
+            }
             sN.edges = append(sN.edges, v)
         }
     }
@@ -108,19 +115,27 @@ func CollapseEdge(a, b Node, cipher map[int]int) (sN Node, err error) {
 func (g Graph) Cut(c chan int) {
     superNodes := make(Graph)
     goneNodes := make(map[int]int)
+    switch os.Getenv("MCDBG") {
+    case "":
+        rand.Seed(time.Now().UnixNano())
+    default:
+        // do nothing
+    }
+    randN := rand.Intn(len(g) - 1)
+    randFactor := rand.Intn(1 + len(g))
     for i := 0; i < len(g) - 2; i++ {
         // Select a random node in g
         // TODO: Try this using the 'fact' that golang range
         // for a map is random
-        randN := rand.Intn(len(g) - 1)
-        sN, super := superNodes[1 + randN]
-        ref, gone := goneNodes[1 + randN]
+        randN = (randN * randFactor) % len(g) + 1
+        sN, super := superNodes[randN]
+        ref, gone := goneNodes[randN]
         var n Node
         var message string
         var ok bool
         switch {
         case super:
-            if sN.vertex == randN + 1 {
+            if sN.vertex == randN {
                 ok = true
             } else {
                 message = fmt.Sprintf("%v != %v", sN.vertex, randN + 1)
@@ -131,9 +146,9 @@ func (g Graph) Cut(c chan int) {
             message += fmt.Sprintf("%v key is 'gone'. goneN: %v, gone: %v",
                                   ref, goneNodes[ref], goneNodes)
         default:
-            n, ok = g[1 + randN]
+            n, ok = g[randN]
             message = fmt.Sprintf("Could not find %v in g: %v",
-                                  1 + randN, g)
+                                  randN, g)
         }
         if !ok {
             log.Fatal(message)
@@ -146,8 +161,8 @@ func (g Graph) Cut(c chan int) {
             if length < 1 {
                 log.Print(n, super, gone, superNodes, goneNodes)
             }
-            randomOther := rand.Intn(length - 1)
-            o := n.edges[1 + randomOther] // Provides a key for the graph
+            randomOther := (randN * randFactor) % length
+            o := n.edges[randomOther] // Provides a key for the graph
             sN, super := superNodes[o]
             ref, gone := goneNodes[o]
             ok = false
@@ -192,6 +207,7 @@ func (g Graph) Cut(c chan int) {
     var count int
     for _, lastNode := range superNodes {
         count = len(lastNode.edges)
+        // break
     }
     c <-count
 }
